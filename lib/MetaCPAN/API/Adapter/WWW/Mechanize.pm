@@ -10,8 +10,9 @@ use Any::Moose;
 with 'MetaCPAN::API::Role::Adapter';
 
 sub get {
-    my ( $self, $url, $extra ) = @_ ; 
-    my $result = $self->adaptee->get( $url, $extra ); 
+    my ( $self, $url, $extra ) = @_ ;
+    $extra = {} if not defined $extra;
+    my $result = $self->adaptee->get( $url, %{$extra} );
     require MetaCPAN::API::Result;
     return MetaCPAN::API::Result->new(
         status => $result->code,
