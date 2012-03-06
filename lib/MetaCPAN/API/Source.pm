@@ -27,11 +27,11 @@ sub source {
 
     $url = $self->base_url . "/$url";
 
-    my $result = $self->ua->get($url);
-    $result->{'success'}
-        or croak "Failed to fetch '$url': " . $result->{'reason'};
+    my $result = $self->adapter->get($url);
+    $result->success
+        or croak "Failed to fetch '$url': " . $result->reason;
 
-    return $result->{'content'};
+    return $result->content;
 }
 
 1;

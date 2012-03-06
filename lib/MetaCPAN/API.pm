@@ -25,9 +25,21 @@ has base_url => (
     default => 'http://api.metacpan.org/v0',
 );
 
+has 'adapter'  => (
+    is         => 'ro',
+    does        => 'MetaCPAN::API::Role::Adapter',
+    lazy_build => 1,
+);
+
+has 'adapter_search_order' => (
+    is          => 'ro',
+    isa         => 'ArrayRef',
+    default     => sub { [ 'HTTP::Tiny', 'WWW::Mechanize' ] },
+);
+
 has ua => (
     is         => 'ro',
-    isa        => 'HTTP::Tiny',
+    isa        => 'Object',
     lazy_build => 1,
 );
 
@@ -46,6 +58,22 @@ sub _build_ua {
     return HTTP::Tiny->new( @{ $self->ua_args } );
 }
 
+sub _build_adapter {
+    my $self = shift;
+    my $ua   = $self->ua;
+    for my $class ( @{$self->adapter_search_order} ) {
+        my $adapter = "MetaCPAN::API::Adapter::$class";
+        if ( $ua->isa( $class ) ) {
+            require Class::Load;
+            Class::Load::load_class( $adapter );
+            return $adapter->new( adaptee => $ua );
+        }
+    }
+    croak "Could not determine Adapter to use with specified UA : $ua \n" 
+    . "Was not in [@{$self->adapter_search_order}]";
+}
+
+
 sub fetch {
     my $self    = shift;
     my $url     = shift;
@@ -53,7 +81,7 @@ sub fetch {
     my $base    = $self->base_url;
     my $req_url = $extra ? "$base/$url?$extra" : "$base/$url";
 
-    my $result  = $self->ua->get($req_url);
+    my $result  = $self->adapter->get($req_url);
     return $self->_decode_result( $result, $req_url );
 }
 
@@ -70,8 +98,7 @@ sub post {
         or croak 'Second argument of query hashref must be provided';
 
     my $query_json = to_json( $query, { canonical => 1 } );
-    my $result     = $self->ua->request(
-        'POST',
+    my $result     = $self->adapter->post(
         "$base/$url",
         {
             headers => { 'Content-Type' => 'application/json' },
@@ -87,14 +114,14 @@ sub _decode_result {
     my ( $result, $url, $original ) = @_;
     my $decoded_result;
 
-    ref $result and ref $result eq 'HASH'
-        or croak 'First argument must be hashref';
+    ref $result and $result->isa('MetaCPAN::API::Result')
+        or croak 'First argument must be MetaCPAN::API::Result, not ' . ref($result);
 
     defined $url
         or croak 'Second argument of a URL must be provided';
 
-    if ( defined ( my $success = $result->{'success'} ) ) {
-        my $reason = $result->{'reason'} || '';
+    if ( defined ( my $success = $result->success ) ) {
+        my $reason = $result->reason || '';
         $reason .= ( defined $original ? " (request: $original)" : '' );
 
         $success or croak "Failed to fetch '$url': $reason";
@@ -102,13 +129,10 @@ sub _decode_result {
         croak 'Missing success in return value';
     }
 
-    defined ( my $content = $result->{'content'} )
+    defined ( my $content = $result->content )
         or croak 'Missing content in return value';
 
-    try   { $decoded_result = decode_json $content }
-    catch { croak "Couldn't decode '$content': $_" };
-
-    return $decoded_result;
+    return $result->decoded_json_content;
 }
 
 sub _build_extra_params {
