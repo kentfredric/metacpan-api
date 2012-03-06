@@ -43,6 +43,12 @@ has ua => (
     lazy_build => 1,
 );
 
+has ua_class => (
+    is      => 'ro',
+    isa     => 'Str',
+    default => 'HTTP::Tiny',
+);
+
 has ua_args => (
     is      => 'ro',
     isa     => 'ArrayRef',
@@ -54,8 +60,9 @@ has ua_args => (
 
 sub _build_ua {
     my $self = shift;
-
-    return HTTP::Tiny->new( @{ $self->ua_args } );
+    require Class::Load;
+    Class::Load::load_class( $self->ua_class );
+    return $self->ua_class->new( @{ $self->ua_args } );
 }
 
 sub _build_adapter {

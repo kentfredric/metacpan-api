@@ -17,42 +17,55 @@ isa_ok( $mcpan, 'MetaCPAN::API' );
 my $url  = 'release/distribution/hello';
 my $flag = 0;
 
-mock 'HTTP::Tiny'
+{
+    package # No PAUSE
+        FakeResponse;
+
+    use Any::Moose;
+    has ['code','message','headers','content'] => ( is => 'rw' );
+    has ['is_success'] => ( is => 'rw' , required => 1);
+
+
+}
+sub resp {
+    return FakeResponse->new( @_ );
+}
+mock 'WWW::Mechanize'
     => method 'get'
     => should {
         my $self = shift;
-        isa_ok( $self, 'HTTP::Tiny' );
+        isa_ok( $self, 'WWW::Mechanize' );
         is( $_[0], $mcpan->base_url . "/$url", 'Correct URL' );
 
-        $flag++ == 0 and return {
-            success => 1,
+        $flag++ == 0 and return resp(
+            is_success => 1,
             content => '{"test":"test"}',
-        };
+        );
 
-        $flag++ == 2 and return {
-            success => 1,
-        };
+        $flag++ == 2 and return resp(
+            is_success => 1,
+        );
 
-        return {
-            success => 1,
+        return resp( 
+            is_success => 1,
             content => 'string',
-        };
+        );
     };
 
 my $result = $mcpan->fetch($url);
 is_deeply( $result, { test => 'test' }, 'Correct result' );
 
-mock 'HTTP::Tiny'
+mock 'WWW::Mechanize'
     => method 'get'
     => should {
         my $self = shift;
-        isa_ok( $self, 'HTTP::Tiny' );
+        isa_ok( $self, 'WWW::Mechanize' );
         is( $_[0], $mcpan->base_url . '/?test=it', 'Correct URL' );
 
-        return {
-            success => 1,
+        return resp(
+            is_success => 1,
             content => '{"content":"ok"}',
-        };
+        );
     };
 
 is_deeply(

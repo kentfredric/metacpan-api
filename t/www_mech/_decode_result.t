@@ -24,14 +24,14 @@ like(
 );
 
 like(
-    exception { $mcpan->_decode_result( res() ) },
+    exception { $mcpan->_decode_result( res( success => 0 ) ) },
     qr/^Second argument of a URL must be provided/,
     'Fail when second argument not given',
 );
 
 like(
     exception { $mcpan->_decode_result( res(), 'url' ) },
-    qr/^Missing success in return value/,
+    qr/^Attribute.*success.*required/,
     'Failing when got no success key',
 );
 

@@ -13,7 +13,7 @@ use Carp qw( croak );
 has 'status' => ( is => 'rw');
 has 'reason' => ( is => 'rw');
 has 'headers' => ( is => 'rw' );
-has 'success' => ( is => 'rw' );
+has 'success' => ( is => 'rw', required => 1 );
 has 'content' => ( is => 'rw' );
 
 sub decoded_json_content {

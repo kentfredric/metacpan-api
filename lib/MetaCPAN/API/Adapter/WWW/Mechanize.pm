@@ -26,7 +26,9 @@ sub post {
     my ( $self, $url, $data ) = @_;
     require HTTP::Request;
     my $req = HTTP::Request->new( 'POST',  $url );
-    $req->headers( $data->{headers} ) if $data->{headers};
+    if ( $data->{headers} ) {
+        $req->header( %{ $data->{headers}} );
+    }
     $req->content( $data->{content} ) if $data->{content};
     my $result = $self->adaptee->request( $req );
     require MetaCPAN::API::Result;
