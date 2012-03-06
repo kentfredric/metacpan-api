@@ -89,7 +89,8 @@ sub fetch {
     my $req_url = $extra ? "$base/$url?$extra" : "$base/$url";
 
     my $result  = $self->adapter->get($req_url);
-    return $self->_decode_result( $result, $req_url );
+    $result->check();
+    return $result->decoded_json_content;
 }
 
 sub post {
@@ -110,35 +111,10 @@ sub post {
         {
             headers => { 'Content-Type' => 'application/json' },
             content => $query_json,
+            request_url => $url,
         }
     );
-
-    return $self->_decode_result( $result, $url, $query_json );
-}
-
-sub _decode_result {
-    my $self = shift;
-    my ( $result, $url, $original ) = @_;
-    my $decoded_result;
-
-    ref $result and $result->isa('MetaCPAN::API::Result')
-        or croak 'First argument must be MetaCPAN::API::Result, not ' . ref($result);
-
-    defined $url
-        or croak 'Second argument of a URL must be provided';
-
-    if ( defined ( my $success = $result->success ) ) {
-        my $reason = $result->reason || '';
-        $reason .= ( defined $original ? " (request: $original)" : '' );
-
-        $success or croak "Failed to fetch '$url': $reason";
-    } else {
-        croak 'Missing success in return value';
-    }
-
-    defined ( my $content = $result->content )
-        or croak 'Missing content in return value';
-
+    $result->check($query_json);
     return $result->decoded_json_content;
 }
 

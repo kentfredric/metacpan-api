@@ -11,20 +11,21 @@ with "MetaCPAN::API::Role::Adapter";
 
 sub post {
     my ( $self, $url, $payload ) = @_; 
+    my $request_url = delete $payload->{request_url};
     my $result =  $self->adaptee->request(
         'POST',
         $url,
         $payload,
     );
     require MetaCPAN::API::Result;
-    return MetaCPAN::API::Result->new( %{$result}    );
+    return MetaCPAN::API::Result->new( %{$result} , request_url => $request_url   );
 }
 
 sub get {
     my ( $self, $url ) = @_ ;
     my $result = $self->adaptee->get( $url );
     require MetaCPAN::API::Result;
-    return MetaCPAN::API::Result->new( %{$result}    );
+    return MetaCPAN::API::Result->new( %{$result}  , request_url => $url  );
 }
 no Any::Moose;
 __PACKAGE__->meta->make_immutable;

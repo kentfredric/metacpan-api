@@ -20,12 +20,14 @@ sub get {
         headers => $result->headers,
         success => $result->is_success,
         content => $result->content,
+        request_url => $url,
     );
 }
 
 sub post {
     my ( $self, $url, $data ) = @_;
     require HTTP::Request;
+    my $request_url = delete $data->{request_url};
     my $req = HTTP::Request->new( 'POST',  $url );
     if ( $data->{headers} ) {
         $req->header( %{ $data->{headers}} );
@@ -39,6 +41,7 @@ sub post {
         headers => $result->headers,
         success => $result->is_success,
         content => $result->content,
+        request_url => $request_url,
     );
 }
 no Any::Moose;
